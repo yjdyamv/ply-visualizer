@@ -86,6 +86,7 @@ class PointCloudVisualizer {
   private edlEnabled: boolean = false;
   private edlStrength: number = 1.0;
   private edlRadius: number = 1.4;
+  private edlSecondRingWeight: number = 0.0;
   private brightnessStops: number = 0.0;
   private effectComposer: EffectComposer | null = null;
   private edlPass: EDLPass | null = null;
@@ -1029,7 +1030,7 @@ class PointCloudVisualizer {
 
   private setupAxesVisibility(): void {
     // Track interaction state for axes visibility
-    let axesHideTimeout: NodeJS.Timeout | null = null;
+    let axesHideTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const showAxes = () => {
       const axesGroup = (this as any).axesGroup;
@@ -1684,6 +1685,7 @@ class PointCloudVisualizer {
     this.edlPass = new EDLPass(this.scene, this.camera, width, height, {
       strength: this.edlStrength,
       radius: this.edlRadius,
+      secondRingWeight: this.edlSecondRingWeight,
     });
     this.edlPass.renderToScreen = true;
     this.effectComposer.addPass(this.edlPass);
@@ -2822,6 +2824,32 @@ class PointCloudVisualizer {
         this.requestRender();
       });
     }
+    const edlSecondRingSlider = document.getElementById(
+      'edl-second-ring-slider'
+    ) as HTMLInputElement;
+    const edlSecondRingValue = document.getElementById('edl-second-ring-value');
+    if (edlSecondRingSlider) {
+      edlSecondRingSlider.value = this.edlSecondRingWeight.toFixed(2);
+      edlSecondRingSlider.addEventListener('input', () => {
+        const val = parseFloat(edlSecondRingSlider.value);
+        this.edlSecondRingWeight = Number.isFinite(val) ? val : 0.0;
+        if (this.edlPass) {
+          this.edlPass.secondRingWeight = this.edlSecondRingWeight;
+        }
+        if (edlSecondRingValue) {
+          edlSecondRingValue.textContent = this.edlSecondRingWeight.toFixed(2);
+        }
+        this.showStatus(
+          this.edlSecondRingWeight > 0
+            ? `Advanced EDL neighborhood: ON (${this.edlSecondRingWeight.toFixed(2)})`
+            : 'Advanced EDL neighborhood: OFF'
+        );
+        this.requestRender();
+      });
+      if (edlSecondRingValue) {
+        edlSecondRingValue.textContent = this.edlSecondRingWeight.toFixed(2);
+      }
+    }
 
     const brightnessSlider = document.getElementById('brightness-slider') as HTMLInputElement;
     const brightnessValue = document.getElementById('brightness-value');
@@ -2901,16 +2929,6 @@ class PointCloudVisualizer {
           break;
 
         // Arcball settings bindings
-        case 'l': // legacy handedness toggle kept for convenience
-          if (this.controlType === 'arcball') {
-            const arc = this.controls as any;
-            if (arc) {
-              arc.invertRotation = !arc.invertRotation;
-            }
-            this.showStatus(`Arcball invertRotation: ${arc && arc.invertRotation ? 'On' : 'Off'}`);
-            e.preventDefault();
-          }
-          break;
         case 'x':
           this.setUpVector(new THREE.Vector3(1, 0, 0));
           e.preventDefault();
@@ -2941,7 +2959,7 @@ class PointCloudVisualizer {
           this.toggleEDL();
           e.preventDefault();
           break;
-        case 't':
+        case 'u':
           this.toggleTransparency();
           e.preventDefault();
           break;

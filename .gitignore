@@ -16,6 +16,7 @@ coverage/
 website/node_modules/
 website/dist/
 website/package-lock.json
+website/pnpm-lock.yaml
 
 # Test outputs
 website/test-results/

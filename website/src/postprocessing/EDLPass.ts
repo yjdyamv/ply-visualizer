@@ -49,6 +49,9 @@ uniform float edlStrength;
 uniform float radius;
 uniform float cameraNear;
 uniform float cameraFar;
+uniform float responseScale;
+uniform float emptyPixelBoost;
+uniform float secondRingWeight;
 
 // 8-direction neighbor offsets
 uniform vec2 neighbours[8];
@@ -78,23 +81,43 @@ float edlResponse(float depth) {
   vec2 texelSize = radius / vec2(screenWidth, screenHeight);
 
   float sum = 0.0;
+  float secondRingSum = 0.0;
 
   for (int i = 0; i < 8; i++) {
-    vec2 neighbourCoord = vUv + texelSize * neighbours[i];
+    vec2 baseOffset = texelSize * neighbours[i];
+    vec2 neighbourCoord = vUv + baseOffset;
     float neighbourDepth = getLinearDepth(neighbourCoord);
 
     if (neighbourDepth > 0.0) {
       if (depth <= 0.0) {
         // Current pixel has no geometry but neighbor does — strong edge
-        sum += 100.0;
+        sum += emptyPixelBoost;
       } else {
         // Compare log2 depths for scale-invariant edge detection
         sum += max(0.0, log2(depth) - log2(neighbourDepth));
       }
     }
+
+    if (secondRingWeight > 0.0) {
+      vec2 secondRingCoord = vUv + baseOffset * 2.0;
+      float secondRingDepth = getLinearDepth(secondRingCoord);
+      if (secondRingDepth > 0.0) {
+        if (depth <= 0.0) {
+          secondRingSum += emptyPixelBoost;
+        } else {
+          secondRingSum += max(0.0, log2(depth) - log2(secondRingDepth));
+        }
+      }
+    }
   }
 
-  return sum / 8.0;
+  float base = sum / 8.0;
+  if (secondRingWeight > 0.0) {
+    float ring2 = secondRingSum / 8.0;
+    // Multi-scale response with normalization to avoid globally darker output.
+    return (base + ring2 * secondRingWeight) / (1.0 + secondRingWeight);
+  }
+  return base;
 }
 
 void main() {
@@ -109,7 +132,7 @@ void main() {
 
   float response = edlResponse(depth);
   // Exponential falloff produces natural-looking shadows
-  float shade = exp(-response * 300.0 * edlStrength);
+  float shade = exp(-response * responseScale * edlStrength);
 
   gl_FragColor = vec4(color.rgb * shade, color.a);
 }
@@ -118,6 +141,7 @@ void main() {
 export interface EDLPassOptions {
   strength?: number;
   radius?: number;
+  secondRingWeight?: number;
 }
 
 /**
@@ -132,6 +156,8 @@ export class EDLPass extends Pass {
   public edlStrength: number;
   /** Controls the sampling radius in pixels (1 = tight, 5 = broad halos) */
   public edlRadius: number;
+  /** Weight of the second-ring neighborhood in Advanced EDL mode. */
+  public secondRingWeight: number;
 
   private scene: THREE.Scene;
   private camera: THREE.Camera;
@@ -154,6 +180,7 @@ export class EDLPass extends Pass {
     this.camera = camera;
     this.edlStrength = options.strength ?? 1.0;
     this.edlRadius = options.radius ?? 1.4;
+    this.secondRingWeight = options.secondRingWeight ?? 0.0;
     this._width = width;
     this._height = height;
 
@@ -179,6 +206,9 @@ export class EDLPass extends Pass {
         screenHeight: { value: height },
         edlStrength: { value: this.edlStrength },
         radius: { value: this.edlRadius },
+        responseScale: { value: 300.0 },
+        emptyPixelBoost: { value: 100.0 },
+        secondRingWeight: { value: this.secondRingWeight },
         cameraNear: { value: 0.001 },
         cameraFar: { value: 1000000 },
         neighbours: { value: neighbourUniforms },
@@ -213,6 +243,9 @@ export class EDLPass extends Pass {
     this.edlMaterial.uniforms.tDepth.value = this.renderTarget.depthTexture;
     this.edlMaterial.uniforms.edlStrength.value = this.edlStrength;
     this.edlMaterial.uniforms.radius.value = this.edlRadius;
+    this.edlMaterial.uniforms.responseScale.value = 300.0;
+    this.edlMaterial.uniforms.emptyPixelBoost.value = 100.0;
+    this.edlMaterial.uniforms.secondRingWeight.value = this.secondRingWeight;
     this.edlMaterial.uniforms.screenWidth.value = this._width;
     this.edlMaterial.uniforms.screenHeight.value = this._height;
 
