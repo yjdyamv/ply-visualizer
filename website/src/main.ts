@@ -2203,7 +2203,7 @@ class PointCloudVisualizer {
     // Reset quaternion to identity (no rotation)
     this.camera.quaternion.set(0, 0, 0, 1);
 
-    // Fit camera to all objects with origin as rotation center
+    // Fit camera to currently loaded objects
     this.fitCameraToAllObjects();
 
     // Update last known camera state to prevent unnecessary UI updates
@@ -4440,7 +4440,7 @@ class PointCloudVisualizer {
     // Ensure color consistency with current gamma setting
     this.rebuildAllColorAttributesForCurrentGammaSetting();
 
-    this.fitCameraToAllObjects();
+    this.autoFitCameraOnFirstLoad();
     this.showLoading(false);
     this.clearError();
     const absStart = (window as any).absoluteStartTime || performance.now();
@@ -4570,32 +4570,32 @@ class PointCloudVisualizer {
       box.expandByObject(group);
     }
 
-    // Calculate distance from origin to furthest corner of bounding box
-    const corners = [
-      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-    ];
+    if (box.isEmpty()) {
+      return;
+    }
 
-    const origin = new THREE.Vector3(0, 0, 0);
-    const maxDistanceFromOrigin = Math.max(...corners.map(corner => corner.distanceTo(origin)));
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 1e-6);
 
-    const fov = this.camera.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDistanceFromOrigin / Math.tan(fov / 2));
+    const vFov = this.camera.fov * (Math.PI / 180);
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * this.camera.aspect);
+    const fitHeightDistance = maxDim / (2 * Math.tan(vFov / 2));
+    const fitWidthDistance = maxDim / (2 * Math.tan(hFov / 2));
+    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.5; // padding
 
-    cameraZ *= 2; // Add some padding
+    // Keep current camera viewing direction and move along it.
+    const direction = this.camera.getWorldDirection(new THREE.Vector3()).normalize();
+    this.camera.position.copy(center.clone().sub(direction.multiplyScalar(distance)));
+    this.camera.lookAt(center);
 
-    // Position camera at origin + Z offset, looking at origin
-    this.camera.position.set(0, 0, cameraZ);
-    this.camera.lookAt(0, 0, 0);
+    // Conservative clipping planes for massive coordinate ranges
+    this.camera.near = Math.max(0.001, Math.min(0.1, distance / 10000));
+    this.camera.far = Math.max(distance * 100, 1000000);
+    this.camera.updateProjectionMatrix();
 
-    // Set rotation center to origin
-    this.controls.target.set(0, 0, 0);
+    // Set rotation center to fitted center
+    this.controls.target.copy(center);
     this.controls.update();
   }
 
@@ -7381,6 +7381,15 @@ class PointCloudVisualizer {
     this.restoreDepthPanelStates(openPanelStates);
     this.updateFileStats();
     this.updateWelcomeMessageVisibility();
+
+    // If all scene objects are gone, allow first-load auto-fit for the next import.
+    if (
+      this.spatialFiles.length === 0 &&
+      this.poseGroups.length === 0 &&
+      this.cameraGroups.length === 0
+    ) {
+      this.isFirstFileLoad = true;
+    }
 
     // Request render to update the display after removing objects
     this.requestRender();
