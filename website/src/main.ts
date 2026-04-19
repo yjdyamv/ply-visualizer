@@ -86,6 +86,7 @@ class PointCloudVisualizer {
   private edlEnabled: boolean = false;
   private edlStrength: number = 1.0;
   private edlRadius: number = 1.4;
+  private brightnessStops: number = 0.0;
   private effectComposer: EffectComposer | null = null;
   private edlPass: EDLPass | null = null;
   private rotationCenterManager: RotationCenterManager = new RotationCenterManager();
@@ -787,6 +788,7 @@ class PointCloudVisualizer {
   private async init(): Promise<void> {
     try {
       this.initThreeJS();
+      this.applyEnvironmentSpecificUI();
       this.setupEventListeners();
 
       // Setup color image loader callback
@@ -866,6 +868,7 @@ class PointCloudVisualizer {
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.applyBrightnessToCanvas();
     this.renderer.shadowMap.enabled = true; // Re-enable shadows
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -1310,6 +1313,20 @@ class PointCloudVisualizer {
     // Always output sRGB for correct display on standard monitors
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // concise summary already printed elsewhere
+  }
+
+  private applyBrightnessToCanvas(): void {
+    // Apply post-display brightness in exposure stops: factor = 2^stops.
+    const factor = Math.pow(2, this.brightnessStops);
+    this.renderer.domElement.style.filter = `brightness(${factor.toFixed(4)})`;
+  }
+
+  private applyEnvironmentSpecificUI(): void {
+    // Themes are browser-only; VS Code uses native theme variables.
+    const themeSection = document.getElementById('theme-section');
+    if (themeSection && isVSCode) {
+      themeSection.style.display = 'none';
+    }
   }
 
   private toggleGammaCorrection(): void {
@@ -2802,6 +2819,20 @@ class PointCloudVisualizer {
         if (edlRadiusValue) {
           edlRadiusValue.textContent = val.toFixed(1);
         }
+        this.requestRender();
+      });
+    }
+
+    const brightnessSlider = document.getElementById('brightness-slider') as HTMLInputElement;
+    const brightnessValue = document.getElementById('brightness-value');
+    if (brightnessSlider) {
+      brightnessSlider.addEventListener('input', () => {
+        const val = parseFloat(brightnessSlider.value);
+        this.brightnessStops = Number.isFinite(val) ? val : 0;
+        if (brightnessValue) {
+          brightnessValue.textContent = this.brightnessStops.toFixed(1);
+        }
+        this.applyBrightnessToCanvas();
         this.requestRender();
       });
     }

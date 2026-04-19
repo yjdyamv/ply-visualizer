@@ -12,6 +12,8 @@ from the VS Code 3D Visualizer extension.
 - **Camera Controls**: Trackball, Orbit, and custom control schemes
 - **Rendering Modes**: Points, wireframe, solid, and normals visualization
 - **Real-time Performance**: FPS monitoring and GPU timing
+- **Brightness correction** Use Eye Dome Lightening or simple brightness
+  correction
 - **Drag & Drop**: Easy file loading via drag and drop interface
 
 ## Getting Started

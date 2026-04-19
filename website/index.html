@@ -112,16 +112,45 @@
             <!-- Controls Tab -->
             <div id="controls-tab" class="tab-panel">
                 <div class="panel-section">
-                    <h4>Theme</h4>
-                    <div class="control-group">
-                        <label for="theme-selector">Color Theme:</label>
-                        <select id="theme-selector" class="control-input">
-                            <option value="dark-modern" selected>Dark Modern</option>
-                            <option value="light-modern">Light Modern</option>
-                        </select>
+                    <h4>Brightness & Eye Dome</h4>
+                    <div>
+                        <div class="control-group" style="margin-bottom: 8px;">
+                            <label for="brightness-slider" style="font-size: 11px;">Brightness:</label>
+                            <input id="brightness-slider" type="range" min="-2.0" max="2.0" step="0.1" value="0.0"
+                                class="control-input" style="flex: 1; margin: 0 8px;" />
+                            <span id="brightness-value"
+                                style="font-size: 11px; min-width: 32px; text-align: right;">0.0</span>
+                        </div>
+                        <p class="setting-description" style="margin-top: 0;">
+                            Exposure-like brightness offset. 0.0 is neutral.
+                        </p>
+                    </div>
+                    <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));">
+                        <div class="control-buttons">
+                            <button id="toggle-edl" class="control-button">
+                                Eye Dome Lighting <span class="button-shortcut">E</span>
+                            </button>
+                        </div>
+                        <p class="setting-description">
+                            Eye Dome Lighting enhances depth perception by darkening edges and silhouettes.
+                            Works with all geometry types and combines with any lighting mode.
+                        </p>
+                        <div id="edl-settings" style="display: none; margin-top: 8px;">
+                            <div class="control-group" style="margin-bottom: 6px;">
+                                <label for="edl-strength-slider" style="font-size: 11px;">Strength:</label>
+                                <input id="edl-strength-slider" type="range" min="0.1" max="5.0" step="0.1" value="1.0"
+                                    class="control-input" style="flex: 1; margin: 0 8px;" />
+                                <span id="edl-strength-value" style="font-size: 11px; min-width: 28px; text-align: right;">1.0</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="edl-radius-slider" style="font-size: 11px;">Radius:</label>
+                                <input id="edl-radius-slider" type="range" min="0.5" max="5.0" step="0.1" value="1.4"
+                                    class="control-input" style="flex: 1; margin: 0 8px;" />
+                                <span id="edl-radius-value" style="font-size: 11px; min-width: 28px; text-align: right;">1.4</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
                 <div class="panel-section">
                     <h4>View Controls</h4>
                     <div class="control-buttons">
@@ -219,30 +248,15 @@
                     <p class="setting-description">
                         Shading options are only effecting PLY files with faces.
                     </p>
-                    <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1));">
-                        <div class="control-buttons">
-                            <button id="toggle-edl" class="control-button">
-                                Eye Dome Lighting <span class="button-shortcut">E</span>
-                            </button>
-                        </div>
-                        <p class="setting-description">
-                            Eye Dome Lighting enhances depth perception by darkening edges and silhouettes.
-                            Works with all geometry types and combines with any lighting mode.
-                        </p>
-                        <div id="edl-settings" style="display: none; margin-top: 8px;">
-                            <div class="control-group" style="margin-bottom: 6px;">
-                                <label for="edl-strength-slider" style="font-size: 11px;">Strength:</label>
-                                <input id="edl-strength-slider" type="range" min="0.1" max="5.0" step="0.1" value="1.0"
-                                    class="control-input" style="flex: 1; margin: 0 8px;" />
-                                <span id="edl-strength-value" style="font-size: 11px; min-width: 28px; text-align: right;">1.0</span>
-                            </div>
-                            <div class="control-group">
-                                <label for="edl-radius-slider" style="font-size: 11px;">Radius:</label>
-                                <input id="edl-radius-slider" type="range" min="0.5" max="5.0" step="0.1" value="1.4"
-                                    class="control-input" style="flex: 1; margin: 0 8px;" />
-                                <span id="edl-radius-value" style="font-size: 11px; min-width: 28px; text-align: right;">1.4</span>
-                            </div>
-                        </div>
+                </div>
+                <div id="theme-section" class="panel-section">
+                    <h4>Theme</h4>
+                    <div class="control-group">
+                        <label for="theme-selector">Color Theme:</label>
+                        <select id="theme-selector" class="control-input">
+                            <option value="dark-modern" selected>Dark Modern</option>
+                            <option value="light-modern">Light Modern</option>
+                        </select>
                     </div>
                 </div>
                 <div class="panel-section">
@@ -252,7 +266,7 @@
                             Screen-Space Scaling <span class="button-shortcut">S</span>
                         </button>
                         <button id="toggle-transparency" class="control-button">
-                            Allow Transparency <span class="button-shortcut">T</span>
+                            Allow Transparency <span class="button-shortcut">U</span>
                         </button>
                     </div>
                     <p class="setting-description">
